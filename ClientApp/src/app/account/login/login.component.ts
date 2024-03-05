@@ -1,7 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AccountService } from '../account.service';
+import { User } from 'src/app/shared/models/user';
+import { take } from 'rxjs';
 
 @Component({
   selector: 'app-login',
@@ -12,10 +14,29 @@ export class LoginComponent implements OnInit {
   loginForm: FormGroup = new FormGroup({});
   submitted = false;
   errorMessages: string[] = [];
+  returnUrl : string | null = null;
 
   constructor(private accountservice: AccountService,
     private frombuilder: FormBuilder
-    , private router:Router) { }
+    , private router:Router , private activateRoute : ActivatedRoute) {
+      this.accountservice.user$.pipe(take(1)).subscribe({
+        next: (user:User | null) => {
+          if(user){
+            this.router.navigateByUrl('/');
+          } 
+          else {
+            this.activateRoute.queryParamMap.subscribe({
+              next : (params : any) => {
+                if(params)
+                {
+                  this.returnUrl = params.get('returnUrl');
+                }
+              }
+            })
+          }
+        }
+      })
+     }
 
   ngOnInit(): void {
     this.initializeForm();
@@ -37,6 +58,11 @@ export class LoginComponent implements OnInit {
           //this.sharedService.showNotification(true,response.value.title,response.value.message);
           //this.router.navigateByUrl('/account/login');
           //console.log(response);
+          if(this.returnUrl){
+            this.router.navigateByUrl(this.returnUrl);
+          } else {
+          this.router.navigateByUrl('/');
+          }
         },
         error: error => {
           console.log(error);
